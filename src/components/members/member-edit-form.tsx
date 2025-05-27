@@ -575,34 +575,9 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
                 role="alert"
                 aria-live="polite"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-                    <span>You have unsaved changes</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleCancel}
-                      type="button"
-                      disabled={saving}
-                      aria-label="Cancel changes and return to previous page"
-                    >
-                      <X className="h-4 w-4 mr-2" aria-hidden="true" />
-                      Cancel
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={handleSave} 
-                      disabled={saving}
-                      type="submit"
-                      aria-label={saving ? "Saving changes..." : "Save all changes"}
-                    >
-                      <Save className="h-4 w-4 mr-2" aria-hidden="true" />
-                      {saving ? "Saving..." : "Save Changes"}
-                    </Button>
-                  </div>
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                  <span>You have unsaved changes. Use the Save Changes button below to save your work.</span>
                 </div>
               </div>
             )}
@@ -656,23 +631,30 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
 
       {/* Cancel Confirmation Dialog */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent role="dialog" aria-labelledby="cancel-dialog-title">
           <AlertDialogHeader>
-            <AlertDialogTitle>Discard Changes?</AlertDialogTitle>
+            <AlertDialogTitle id="cancel-dialog-title">
+              Discard Changes?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              You have unsaved changes that will be lost if you leave this page.
+              You have unsaved changes that will be lost if you leave this page. 
               Are you sure you want to continue without saving?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Stay on Page</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={confirmCancel}>
+            <AlertDialogCancel onClick={() => setShowCancelDialog(false)}>
+              Stay on Page
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmCancel}
+              className="bg-destructive text-destructive-foreground"
+              aria-label="Confirm discarding changes and leave page"
+            >
               Discard Changes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </div>
   );
 }

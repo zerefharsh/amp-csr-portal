@@ -8,7 +8,9 @@ import {
   MemberFilters,
   SubscriptionFilters,
   SupportTicket,
-  MemberStatus
+  MemberStatus,
+  SubscriptionStatus,
+  BillingCycle
 } from "@/types";
 
 import {
@@ -18,7 +20,8 @@ import {
   getSubscriptions as dbGetSubscriptions,
   getSubscriptionById as dbGetSubscriptionById,
   getSupportTickets as dbGetSupportTickets,
-  getDashboardMetrics as dbGetDashboardMetrics
+  getDashboardMetrics as dbGetDashboardMetrics,
+  updateSubscription as dbUpdateSubscription
 } from "@/services/db";
 
 // API Service
@@ -53,6 +56,16 @@ export const apiService = {
 
   async getSubscriptionById(id: string): Promise<SubscriptionWithDetails> {
     return await dbGetSubscriptionById(id);
+  },
+
+  async updateSubscription(id: string, updates: Partial<{
+    planName: string;
+    amount: number;
+    status: SubscriptionStatus;
+    billingCycle: BillingCycle;
+    nextBillingDate: string;
+  }>): Promise<SubscriptionWithDetails> {
+    return await dbUpdateSubscription(id, updates);
   },
 
   // Support APIs

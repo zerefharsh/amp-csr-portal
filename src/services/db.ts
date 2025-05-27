@@ -59,6 +59,7 @@ export async function getMembers(filters: { search?: string; status?: string } =
   let query = supabase
     .from('members')
     .select('*', { count: 'exact' })
+    .order('updated_at', { ascending: false });
 
   if (filters.search) {
     query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`)
@@ -115,6 +116,7 @@ export async function getSubscriptions(filters: { search?: string; status?: stri
       member:members!inner(id, name, email, phone, status),
       vehicle:vehicles!inner(*)
     `, { count: 'exact' })
+    .order('updated_at', { ascending: false });
 
   if (filters.search) {
     query = query.or(`
@@ -277,6 +279,43 @@ export async function updateMember(id: string, updates: Partial<{
     .update(dbUpdates)
     .eq('id', id)
     .select('*')
+    .single();
+
+  if (error) throw error;
+
+  // Transform back to camelCase
+  return transformKeys(data);
+}
+
+// Subscription CRUD Operations
+export async function updateSubscription(id: string, updates: Partial<{
+  planName: string;
+  amount: number;
+  status: string;
+  billingCycle: string;
+  nextBillingDate: string;
+}>) {
+  // Convert camelCase to snake_case for database
+  const dbUpdates: any = {};
+
+  if (updates.planName !== undefined) dbUpdates.plan_name = updates.planName;
+  if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
+  if (updates.status !== undefined) dbUpdates.status = updates.status;
+  if (updates.billingCycle !== undefined) dbUpdates.billing_cycle = updates.billingCycle;
+  if (updates.nextBillingDate !== undefined) dbUpdates.next_billing_date = updates.nextBillingDate;
+
+  // Always update the updated_at timestamp
+  dbUpdates.updated_at = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .update(dbUpdates)
+    .eq('id', id)
+    .select(`
+      *,
+      member:members!inner(id, name, email, phone, status),
+      vehicle:vehicles!inner(*)
+    `)
     .single();
 
   if (error) throw error;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ import {
   type SubscriptionWithDetails
 } from "@/types";
 import { useRouter } from "next/navigation";
+import { apiService } from "@/services/api";
 
 interface SubscriptionEditFormProps {
   subscriptionId: string;
@@ -60,56 +61,65 @@ const availablePlans = [
   { name: "Ultimate Wash", monthlyPrice: 49.99, yearlyPrice: 499.99 }
 ];
 
-// Mock subscription data - in real app this would be fetched
-const mockSubscription: SubscriptionWithDetails = {
-  id: "sub1",
-  memberId: "1",
-  vehicleId: "veh1",
-  planName: "Premium Wash",
-  amount: 29.99,
-  status: "active",
-  billingCycle: "monthly",
-  nextBillingDate: "2024-02-15T00:00:00Z",
-  startDate: "2024-01-15T00:00:00Z",
-  createdAt: "2024-01-15T10:30:00Z",
-  updatedAt: "2024-01-20T14:45:00Z",
-  member: {
-    id: "1",
-    name: "John Smith",
-    email: "john.smith@email.com",
-    phone: "(555) 123-4567",
-    status: "active"
-  },
-  vehicle: {
-    id: "veh1",
-    memberId: "1",
-    make: "BMW",
-    model: "X5",
-    year: 2022,
-    licensePlate: "ABC-123",
-    color: "Black",
-    createdAt: "2024-01-15T10:30:00Z",
-    updatedAt: "2024-01-15T10:30:00Z",
-  }
-};
-
 export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [subscription, setSubscription] = useState<SubscriptionWithDetails>(mockSubscription);
+  const [subscription, setSubscription] = useState<SubscriptionWithDetails | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
-    planName: subscription.planName,
-    amount: subscription.amount.toString(),
-    billingCycle: subscription.billingCycle,
-    status: subscription.status,
-    nextBillingDate: subscription.nextBillingDate.split('T')[0], // Format for date input
+    planName: "",
+    amount: "",
+    billingCycle: "monthly" as BillingCycle,
+    status: "active" as SubscriptionStatus,
+    nextBillingDate: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const getNextBillingDateDefault = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const next = new Date(today);
+    next.setDate(next.getDate() + 30);
+    return next.toISOString().split('T')[0]; // yyyy-mm-dd
+  };
+
+
+  // Fetch subscription data on mount
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const subscriptionData = await apiService.getSubscriptionById(subscriptionId);
+        setSubscription(subscriptionData);
+        
+        // Initialize form data with fetched subscription data
+        setFormData({
+          planName: subscriptionData.planName,
+          amount: subscriptionData.amount.toString(),
+          billingCycle: subscriptionData.billingCycle,
+          status: subscriptionData.status,
+          nextBillingDate: new Date(subscriptionData.nextBillingDate) < new Date()
+          ? getNextBillingDateDefault()
+          : subscriptionData.nextBillingDate.split('T')[0], // Format for date input
+        });
+      } catch (err) {
+        console.error("Error fetching subscription:", err);
+        setError("Failed to load subscription data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubscription();
+  }, [subscriptionId]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -175,25 +185,29 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
     if (!validateForm()) return;
 
     setSaving(true);
+    setError(null);
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Update subscription data
-      const updatedSubscription = {
-        ...subscription,
-        ...formData,
+      const updatedSubscription = await apiService.updateSubscription(subscriptionId, {
+        planName: formData.planName,
         amount: parseFloat(formData.amount),
-        updatedAt: new Date().toISOString()
-      };
+        status: formData.status,
+        billingCycle: formData.billingCycle,
+        nextBillingDate: formData.nextBillingDate,
+      });
       
+      // Update local state with the response
       setSubscription(updatedSubscription);
       setHasChanges(false);
       
       console.log("Subscription updated successfully");
       
-    } catch (error) {
-      console.error("Error updating subscription:", error);
+      // Navigate back to subscriptions page after successful save
+      router.push('/subscriptions');
+      
+    } catch (err) {
+      console.error("Error updating subscription:", err);
+      setError("Failed to update subscription. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -201,12 +215,15 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
 
   const handleCancel = () => {
     if (hasChanges) {
-      if (confirm("You have unsaved changes. Are you sure you want to leave?")) {
-        router.back();
-      }
+      setShowCancelDialog(true);
     } else {
       router.back();
     }
+  };
+
+  const confirmCancel = () => {
+    setShowCancelDialog(false);
+    router.back();
   };
 
   const handleSpecialAction = async (action: string, newStatus?: SubscriptionStatus) => {
@@ -216,7 +233,7 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       if (newStatus) {
-        setSubscription(prev => ({ ...prev, status: newStatus }));
+        setSubscription(prev => prev ? { ...prev, status: newStatus } : null);
         setFormData(prev => ({ ...prev, status: newStatus }));
       }
       
@@ -283,8 +300,39 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
     );
   }
 
+  if (error && !subscription) {
+    return (
+      <div className="text-center py-12" role="main" aria-label="Error loading subscription">
+        <AlertTriangle className="h-12 w-12 text-destructive opacity-50 mx-auto mb-3" aria-hidden="true" />
+        <p className="text-destructive mb-4">{error}</p>
+        <Button onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  if (!subscription) {
+    return (
+      <div className="text-center py-12" role="main" aria-label="Subscription not found">
+        <CreditCard className="h-12 w-12 text-muted-foreground opacity-50 mx-auto mb-3" aria-hidden="true" />
+        <p className="text-muted-foreground">Subscription not found</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-4xl" role="main" aria-labelledby="edit-subscription-title">
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4" role="alert">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
+            <span className="text-destructive text-sm">{error}</span>
+          </div>
+        </div>
+      )}
+
       {/* Header with Subscription Info and Quick Actions */}
       <Card>
         <CardHeader>
@@ -487,6 +535,7 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
                 <Select 
                   value={formData.planName} 
                   onValueChange={(value) => handleInputChange("planName", value)}
+                  disabled={saving}
                 >
                   <SelectTrigger 
                     className={errors.planName ? "border-destructive" : ""}
@@ -531,6 +580,7 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
                 <Select 
                   value={formData.billingCycle} 
                   onValueChange={(value: BillingCycle) => handleInputChange("billingCycle", value)}
+                  disabled={saving}
                 >
                   <SelectTrigger id="billingCycle" aria-describedby="billing-help">
                     <SelectValue />
@@ -568,6 +618,7 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
                   aria-describedby={errors.amount ? "amount-error" : "amount-help"}
                   aria-invalid={!!errors.amount}
                   required
+                  disabled={saving}
                 />
                 <div id="amount-help" className="sr-only">
                   Enter the subscription amount in dollars and cents
@@ -591,6 +642,7 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
                 <Select 
                   value={formData.status} 
                   onValueChange={(value: SubscriptionStatus) => handleInputChange("status", value)}
+                  disabled={saving}
                 >
                   <SelectTrigger id="status" aria-describedby="status-help">
                     <SelectValue />
@@ -626,6 +678,7 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
                 aria-describedby={errors.nextBillingDate ? "billing-date-error" : "billing-date-help"}
                 aria-invalid={!!errors.nextBillingDate}
                 required
+                disabled={saving}
               />
               <div id="billing-date-help" className="sr-only">
                 Select the date for the next billing cycle
@@ -649,33 +702,9 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
                 role="alert"
                 aria-live="polite"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-                    <span>You have unsaved changes</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleCancel}
-                      type="button"
-                      aria-label="Cancel changes and return to previous page"
-                    >
-                      <X className="h-4 w-4 mr-2" aria-hidden="true" />
-                      Cancel
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={handleSave} 
-                      disabled={saving}
-                      type="submit"
-                      aria-label={saving ? "Saving changes..." : "Save all changes"}
-                    >
-                      <Save className="h-4 w-4 mr-2" aria-hidden="true" />
-                      {saving ? "Saving..." : "Save Changes"}
-                    </Button>
-                  </div>
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                  <span>You have unsaved changes. Use the Save Changes button below to save your work.</span>
                 </div>
               </div>
             )}
@@ -693,6 +722,7 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
           variant="outline" 
           onClick={handleCancel}
           type="button"
+          disabled={saving}
           aria-label="Cancel editing and return to subscription details"
         >
           <X className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -725,6 +755,25 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
           </Button>
         </div>
       </div>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard Changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes that will be lost if you leave this page.
+              Are you sure you want to continue without saving?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay on Page</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={confirmCancel}>
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
