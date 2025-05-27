@@ -151,6 +151,7 @@ export function TransferSubscriptionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogTitle className="sr-only"></DialogTitle>
       <DialogContent 
         className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
         role="dialog"
