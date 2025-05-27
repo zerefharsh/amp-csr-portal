@@ -60,21 +60,21 @@ export const apiService = {
     const tickets = await dbGetSupportTickets(filters);
     
     // Transform database format to expected API format
-    return tickets.map((ticket: any) => ({
-      id: ticket.id,
-      member: {
-        id: ticket.memberId || '',
-        name: ticket.memberName || '',
-        email: ticket.memberEmail || ''
-      },
-      subject: ticket.subject,
-      description: ticket.description,
-      priority: ticket.priority,
-      status: ticket.status,
-      category: ticket.category,
-      createdAt: ticket.createdAt,
-      assignedTo: ticket.assignedTo || '',
-      lastResponse: ticket.lastResponse || ticket.createdAt
-    }));
+      return tickets.map((ticket: any) => ({
+        id: ticket.id,
+        member: ticket.member ?? {
+            id: '',
+            name: '',
+            email: ''
+        },
+        subject: ticket.subject,
+        description: ticket.description,
+        priority: ticket.priority,
+        status: ticket.status,
+        category: ticket.category,
+        createdAt: ticket.createdAt,
+        assignedTo: ticket.assignedTo || '',
+        lastResponse: ticket.lastResponse || ticket.createdAt
+      }));
   }
 };

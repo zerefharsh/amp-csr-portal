@@ -217,10 +217,10 @@ export function SubscriptionsTable() {
             <CardTitle id="subscriptions-table-title">
               All Subscriptions ({totalSubscriptions})
             </CardTitle>
-            <Button aria-label="Add new subscription">
+            {/* <Button aria-label="Add new subscription">
               <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
               Add Subscription
-            </Button>
+            </Button> */}
           </div>
           
           {/* Search and Filters */}

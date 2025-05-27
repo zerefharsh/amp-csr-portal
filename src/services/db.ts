@@ -177,7 +177,10 @@ export async function getVehiclesByMemberId(memberId: string) {
 export async function getSupportTickets(filters: { search?: string; status?: string; priority?: string; category?: string } = {}) {
   let query = supabase
     .from('support_tickets')
-    .select('*')
+    .select(`
+      *,
+      member:members(id, name, email)
+    `);
 
   if (filters.search) {
     query = query.or(`

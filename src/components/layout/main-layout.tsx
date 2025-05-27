@@ -11,7 +11,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children, title, subtitle }: MainLayoutProps) {
   return (
-    <div className="csr-page flex h-screen overflow-hidden">
+    <div className="csr-page flex overflow-hidden">
       {/* Skip to main content link for keyboard navigation */}
       <a 
         href="#main-content"
@@ -30,7 +30,7 @@ export function MainLayout({ children, title, subtitle }: MainLayoutProps) {
         
         {/* Main Content */}
         <main 
-          className="csr-main"
+          className="csr-main csr-main flex-1 overflow-y-auto px-6 py-8"
           id="main-content"
           role="main"
           aria-labelledby="page-title"
