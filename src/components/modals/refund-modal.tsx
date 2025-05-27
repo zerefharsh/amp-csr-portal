@@ -84,7 +84,6 @@ export function RefundModal({
   onClose, 
   subscription 
 }: RefundModalProps) {
-    console.log("RefundModal rendered", isOpen);
 
   const [loading, setLoading] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState("");
@@ -170,8 +169,6 @@ export function RefundModal({
   const maxRefundAmount = selectedPaymentData?.amount || 0;
 
   if (!subscription) return null;
-  console.log("RefundModal rendered After", isOpen);
-
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

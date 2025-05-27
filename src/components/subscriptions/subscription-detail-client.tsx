@@ -108,10 +108,10 @@ export function SubscriptionDetailClient({ subscriptionId }: SubscriptionDetailC
 
   const getStatusBadge = (status: SubscriptionStatus) => {
     const variants = {
-      active: { className: "status-active", icon: CheckCircle },
-      paused: { className: "status-suspended", icon: Pause },
-      overdue: { className: "status-overdue", icon: AlertTriangle },
-      cancelled: { className: "status-cancelled", icon: XCircle }
+      active: { className: "status-active bg-success/10 text-success border-success/20", icon: CheckCircle },
+      paused: { className: "status-suspended bg-warning/10 text-warning border-warning/20", icon: Pause },
+      overdue: { className: "status-overdue bg-destructive/10 text-destructive border-destructive/20", icon: AlertTriangle },
+      cancelled: { className: "status-cancelled bg-muted text-muted-foreground border-border", icon: XCircle }
     };
     
     const variant = variants[status];
@@ -128,11 +128,11 @@ export function SubscriptionDetailClient({ subscriptionId }: SubscriptionDetailC
   const getPaymentStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
-        return <Badge className="status-active">Completed</Badge>;
+        return <Badge className="status-active bg-success/10 text-success border-success/20">Completed</Badge>;
       case "failed":
-        return <Badge className="status-overdue">Failed</Badge>;
+        return <Badge className="status-overdue bg-destructive/10 text-destructive border-destructive/20">Failed</Badge>;
       case "pending":
-        return <Badge className="status-suspended">Pending</Badge>;
+        return <Badge className="status-suspended bg-amber-100 text-amber-700 border-amber-200">Pending</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }

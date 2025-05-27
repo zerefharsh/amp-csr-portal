@@ -215,7 +215,7 @@ export function SupportTicketResponseModal({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent 
-        className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col"
+        className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto"
         role="dialog"
         aria-labelledby="response-dialog-title"
         aria-describedby="response-dialog-description"
@@ -255,9 +255,9 @@ export function SupportTicketResponseModal({
             
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-muted-foreground">Customer</p>
-                <p className="font-medium">{ticket.customer.name}</p>
-                <p className="text-xs text-muted-foreground">{ticket.customer.email}</p>
+                <p className="text-muted-foreground">Member</p>
+                <p className="font-medium">{ticket.member.name}</p>
+                <p className="text-xs text-muted-foreground">{ticket.member.email}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Assigned To</p>

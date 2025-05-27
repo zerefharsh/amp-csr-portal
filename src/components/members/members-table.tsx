@@ -31,7 +31,7 @@ import {
   MoreVertical,
   UserPlus
 } from "lucide-react";
-import { MemberStatus, MembersListResponse } from "@/types";
+import { MemberStatus, MembersListResponse, SubscriptionStatus } from "@/types";
 import { apiService } from "@/services/api";
 
 export function MembersTable() {
@@ -72,27 +72,18 @@ export function MembersTable() {
     fetchMembers();
   }, [searchQuery, statusFilter, currentPage]);
 
-  const getStatusBadge = (member: { status: MemberStatus; isOverdue: boolean }) => {
-    // Show overdue badge if member has overdue subscriptions
-    if (member.isOverdue && member.status === "active") {
-      return (
-        <div className="flex items-center space-x-1">
-          <Badge className="status-badge status-active">Active</Badge>
-          <Badge className="status-badge status-overdue text-xs">Overdue</Badge>
-        </div>
-      );
-    }
-
-    // Regular status badges
-    const variants: Record<MemberStatus, string> = {
-      active: "status-active",
-      suspended: "status-suspended", 
-      cancelled: "status-cancelled"
+  const getStatusBadge = (status: SubscriptionStatus | MemberStatus) => {
+    const variants = {
+      active: "bg-success/10 text-success border-success/20",
+      suspended: "bg-warning/10 text-warning border-warning/20",
+      paused: "bg-amber-100 text-amber-700 border-amber-200",
+      overdue: "bg-destructive/10 text-destructive border-destructive/20",
+      cancelled: "bg-muted text-muted-foreground border-border"
     };
-    
+
     return (
-      <Badge className={`status-badge ${variants[member.status]}`}>
-        {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
+      <Badge className={`status-badge ${variants[status] || variants.cancelled}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
   };
@@ -137,10 +128,10 @@ export function MembersTable() {
           <CardTitle id="members-table-title">
             All Members ({totalMembers})
           </CardTitle>
-          <Button aria-label="Add new member">
+          {/* <Button aria-label="Add new member">
             <UserPlus className="h-4 w-4 mr-2" aria-hidden="true" />
             Add Member
-          </Button>
+          </Button> */}
         </div>
         
         {/* Search and Filters */}
@@ -323,7 +314,7 @@ export function MembersTable() {
                     </TableCell>
                     <TableCell role="cell">
                       <div aria-label={`Status: ${member.status}${member.isOverdue ? ', with overdue payments' : ''}`}>
-                        {getStatusBadge(member)}
+                        {getStatusBadge(member.status)}
                       </div>
                     </TableCell>
                     <TableCell role="cell">

@@ -35,7 +35,7 @@ import {
   DollarSign,
   User
 } from "lucide-react";
-import { SubscriptionStatus, SubscriptionsListResponse } from "@/types";
+import { MemberStatus, SubscriptionStatus, SubscriptionsListResponse } from "@/types";
 import { apiService } from "@/services/api";
 
 export function SubscriptionsTable() {
@@ -72,20 +72,21 @@ export function SubscriptionsTable() {
   // Get unique plan names for filter (when data is available)
   const planNames = data ? Array.from(new Set(data.data.map(sub => sub.planName))) : [];
 
-  const getStatusBadge = (status: SubscriptionStatus) => {
-    const variants = {
-      active: "status-active",
-      paused: "status-suspended",
-      overdue: "status-overdue",
-      cancelled: "status-cancelled"
+  const getStatusBadge = (status: SubscriptionStatus | MemberStatus) => {
+      const variants = {
+        active: "bg-success/10 text-success border-success/20",
+        suspended: "bg-warning/10 text-warning border-warning/20",
+        paused: "bg-amber-100 text-amber-700 border-amber-200",
+        overdue: "bg-destructive/10 text-destructive border-destructive/20",
+        cancelled: "bg-muted text-muted-foreground border-border"
+      };
+  
+      return (
+        <Badge className={`status-badge ${variants[status] || variants.cancelled}`}>
+          {status.charAt(0).toUpperCase() + status.slice(1)}
+        </Badge>
+      );
     };
-    
-    return (
-      <Badge className={`status-badge ${variants[status] || variants.cancelled}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
 
   const getMemberStatusBadge = (status: string) => {
     if (status === "suspended") {

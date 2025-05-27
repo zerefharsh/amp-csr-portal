@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,10 +17,16 @@ import {
 } from "lucide-react";
 import { DashboardMetrics } from "@/types";
 import { apiService } from "@/services/api";
+import { TransferModal, RefundModal, CreateUserModal } from "@/components/modals/dashboard-modals";
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Modal states
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -42,18 +49,21 @@ export default function DashboardPage() {
       description: "Add a new customer account",
       icon: UserPlus,
       variant: "primary" as const,
+      onClick: () => setIsCreateUserModalOpen(true),
     },
     {
       title: "Process Refund",
       description: "Handle payment refunds",
       icon: RotateCcw,
       variant: "success" as const,
+      onClick: () => setIsRefundModalOpen(true),
     },
     {
       title: "Transfer Subscription",
       description: "Move subscription between accounts",
       icon: ArrowLeftRight,
       variant: "warning" as const,
+      onClick: () => setIsTransferModalOpen(true),
     },
   ];
 
@@ -174,6 +184,7 @@ export default function DashboardPage() {
         <CardContent className="space-y-3">
           <div 
             role="group"
+            className="flex"
             aria-labelledby="quick-actions-title"
             aria-describedby="quick-actions-description"
           >
@@ -184,8 +195,9 @@ export default function DashboardPage() {
               <Button
                 key={index}
                 variant="ghost"
-                className="w-full justify-start p-4 h-auto hover:bg-accent/50 transition-colors"
+                className="w-full flex-1 justify-start p-4 h-auto hover:bg-accent/50 transition-colors"
                 aria-label={`${action.title}: ${action.description}`}
+                onClick={action.onClick}
               >
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 flex-shrink-0 quick-action-${action.variant}`} aria-hidden="true">
                   <action.icon className="h-5 w-5" />
@@ -204,12 +216,14 @@ export default function DashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle id="recent-members-title">Recent Members</CardTitle>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             aria-label="View all members page"
           >
-            View All Members
+            <Link href={`/members`}>
+              View All Members
+            </Link>
           </Button>
         </CardHeader>
         <CardContent>
@@ -224,6 +238,20 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Quick Action Modals */}
+      <TransferModal 
+        isOpen={isTransferModalOpen} 
+        onClose={() => setIsTransferModalOpen(false)} 
+      />
+      <RefundModal 
+        isOpen={isRefundModalOpen} 
+        onClose={() => setIsRefundModalOpen(false)} 
+      />
+      <CreateUserModal 
+        isOpen={isCreateUserModalOpen} 
+        onClose={() => setIsCreateUserModalOpen(false)} 
+      />
     </MainLayout>
   );
 }

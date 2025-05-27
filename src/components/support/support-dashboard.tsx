@@ -117,11 +117,11 @@ export function SupportDashboard() {
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case "high":
-        return <Badge className="status-overdue">High</Badge>;
+        return <Badge className="status-overdue bg-destructive/10 text-destructive border-destructive/20">High</Badge>;
       case "medium":
-        return <Badge className="status-suspended">Medium</Badge>;
+        return <Badge className="status-suspended bg-warning/10 text-warning border-warning/20">Medium</Badge>;
       case "low":
-        return <Badge className="status-active">Low</Badge>;
+        return <Badge className="status-active bg-success/10 text-success border-success/20">Low</Badge>;
       default:
         return <Badge variant="secondary">{priority}</Badge>;
     }
@@ -130,11 +130,11 @@ export function SupportDashboard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "open":
-        return <Badge className="status-overdue">Open</Badge>;
+        return <Badge className="status-overdue bg-destructive/10 text-destructive border-destructive/20">Open</Badge>;
       case "in_progress":
-        return <Badge className="status-suspended">In Progress</Badge>;
+        return <Badge className="status-suspended bg-warning/10 text-warning border-warning/20">In Progress</Badge>;
       case "resolved":
-        return <Badge className="status-active">Resolved</Badge>;
+        return <Badge className="status-active bg-success/10 text-success border-success/20">Resolved</Badge>;
       case "closed":
         return <Badge variant="secondary">Closed</Badge>;
       default:
@@ -358,7 +358,7 @@ export function SupportDashboard() {
                     <TableHead>Category</TableHead>
                     <TableHead>Assigned To</TableHead>
                     <TableHead>Last Response</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -421,13 +421,13 @@ export function SupportDashboard() {
                               <User className="h-4 w-4 text-muted-foreground" />
                             </div>
                             <div>
-                              <p className="font-medium text-foreground">{ticket.customer.name}</p>
-                              <p className="text-sm text-muted-foreground">{ticket.customer.email}</p>
+                              <p className="font-medium text-foreground">{ticket.member.name}</p>
+                              <p className="text-sm text-muted-foreground">{ticket.member.email}</p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div>
+                          <div className="text-wrap">
                             <p className="font-medium text-foreground">{ticket.subject}</p>
                             <p className="text-sm text-muted-foreground line-clamp-2">
                               {ticket.description}
