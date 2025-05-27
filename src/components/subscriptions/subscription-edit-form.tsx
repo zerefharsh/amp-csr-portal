@@ -39,7 +39,8 @@ import {
   XCircle,
   ArrowLeftRight,
   RotateCcw,
-  User
+  User,
+  Plus
 } from "lucide-react";
 import { 
   SubscriptionStatus,
@@ -48,6 +49,8 @@ import {
 } from "@/types";
 import { useRouter } from "next/navigation";
 import { apiService } from "@/services/api";
+import { AddVehicleModal } from "../modals/add-vehicle-modal";
+import { TransferSubscriptionModal } from "../modals/transfer-subscription-modal";
 
 interface SubscriptionEditFormProps {
   subscriptionId: string;
@@ -69,6 +72,8 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
   const [hasChanges, setHasChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isAddVehicleModalOpen, setIsAddVehicleModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -366,38 +371,16 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
               role="group"
               aria-label="Quick subscription actions"
             >
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-primary"
-                    aria-label="Transfer this subscription to another customer"
-                  >
-                    <ArrowLeftRight className="h-4 w-4 mr-2" aria-hidden="true" />
-                    Transfer
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent role="dialog" aria-labelledby="transfer-dialog-title">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle id="transfer-dialog-title">
-                      Transfer Subscription?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Transfer this subscription to another customer account. This action requires additional steps.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={() => handleSpecialAction("Transfer")}
-                      aria-label="Continue with transfer process"
-                    >
-                      Continue Transfer
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-primary"
+                onClick={() => setIsTransferModalOpen(true)}
+                aria-label="Transfer this subscription to another customer"
+              >
+                <ArrowLeftRight className="h-4 w-4 mr-2" aria-hidden="true" />
+                Transfer
+              </Button>
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -483,13 +466,24 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2" id="vehicle-section-title">
-              <Car className="h-5 w-5" aria-hidden="true" />
-              <span>Vehicle</span>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-2" id="vehicle-section-title">
+                <Car className="h-5 w-5" aria-hidden="true" />
+                <span>Vehicle</span>
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddVehicleModalOpen(true)}
+                aria-label={`Add new vehicle for ${subscription.member.name}`}
+              >
+                <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
+                Add Vehicle
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div 
+            <div
               className="flex items-start space-x-3"
               role="group"
               aria-labelledby="vehicle-section-title"
@@ -774,6 +768,19 @@ export function SubscriptionEditForm({ subscriptionId }: SubscriptionEditFormPro
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TransferSubscriptionModal 
+        isOpen={isTransferModalOpen} 
+        subscription={subscription}
+        onClose={() => setIsTransferModalOpen(false)}
+      />
+
+      <AddVehicleModal
+        isOpen={isAddVehicleModalOpen}
+        onClose={() => setIsAddVehicleModalOpen(false)}
+        memberId={subscription.memberId}
+        memberName={subscription.member.name}
+      />
     </div>
   );
 }
