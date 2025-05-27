@@ -52,7 +52,7 @@ export interface SupportTicket {
   status: "open" | "in_progress" | "resolved" | "closed";
   priority: "high" | "medium" | "low";
   category: "billing" | "technical" | "account" | "general";
-  customer: {
+  member: {
     id: string;
     name: string;
     email: string;

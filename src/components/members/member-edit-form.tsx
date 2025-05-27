@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PhoneInput } from "@/components/ui/phone-input";
 import {
   Select,
   SelectContent,
@@ -40,43 +41,59 @@ import {
   User,
   UserX
 } from "lucide-react";
-import { MemberStatus, type Member as MemberType } from "@/types";
+import { MemberStatus, type MemberWithDetails } from "@/types";
+import { apiService } from "@/services/api";
 
 interface MemberEditFormProps {
   memberId: string;
 }
 
-// Mock member data - in real app this would be fetched
-const mockUser: MemberType = {
-  id: "1",
-  name: "John Smith",
-  email: "john.smith@email.com",
-  phone: "(555) 123-4567",
-  status: "active",
-  createdAt: "2024-01-15T10:30:00Z",
-  updatedAt: "2024-01-20T14:45:00Z",
-  lastActivity: "2024-01-20T14:45:00Z",
-  totalSubscriptions: 2,
-  monthlyRevenue: 59.98,
-  isOverdue: false,
-};
-
 export function MemberEditForm({ memberId }: MemberEditFormProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [member, setUser] = useState<MemberType>(mockUser);
+  const [member, setMember] = useState<MemberWithDetails | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
-    name: member.name,
-    email: member.email,
-    phone: member.phone || "",
-    status: member.status,
+    name: "",
+    email: "",
+    phone: "",
+    status: "active" as MemberStatus,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Fetch member data on mount
+  useEffect(() => {
+    const fetchMember = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const memberData = await apiService.getMemberById(memberId);
+        setMember(memberData);
+        
+        // Initialize form data with fetched member data
+        setFormData({
+          name: memberData.name,
+          email: memberData.email,
+          phone: memberData.phone || "",
+          status: memberData.status,
+        });
+      } catch (err) {
+        console.error("Error fetching member:", err);
+        setError("Failed to load member data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMember();
+  }, [memberId]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -101,8 +118,12 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
       newErrors.email = "Please enter a valid email address";
     }
 
-    if (formData.phone && !/^\(\d{3}\) \d{3}-\d{4}$/.test(formData.phone)) {
-      newErrors.phone = "Phone must be in format (555) 123-4567";
+    // More flexible phone validation - just check if it has at least 10 digits when provided
+    if (formData.phone) {
+      const digits = formData.phone.replace(/\D/g, '');
+      if (digits.length > 0 && digits.length < 10) {
+        newErrors.phone = "Phone number must have at least 10 digits";
+      }
     }
 
     setErrors(newErrors);
@@ -113,19 +134,28 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
     if (!validateForm()) return;
 
     setSaving(true);
+    setError(null);
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const updatedMember = await apiService.updateMember(memberId, {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        status: formData.status,
+      });
       
-      // Update member data
-      setUser(prev => ({ ...prev, ...formData, updatedAt: new Date().toISOString() }));
+      // Update local state with the response
+      setMember(prev => prev ? { ...prev, ...updatedMember } : null);
       setHasChanges(false);
       
-      // Show success message or redirect
-      console.log("User updated successfully");
+      console.log("Member updated successfully");
       
-    } catch (error) {
-      console.error("Error updating member:", error);
+      // Navigate back to members page after successful save
+      router.push('/members');
+      
+    } catch (err) {
+      console.error("Error updating member:", err);
+      setError("Failed to update member. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -133,27 +163,34 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
 
   const handleCancel = () => {
     if (hasChanges) {
-      if (confirm("You have unsaved changes. Are you sure you want to leave?")) {
-        router.back();
-      }
+      setShowCancelDialog(true);
     } else {
       router.back();
     }
   };
 
+  const confirmCancel = () => {
+    setShowCancelDialog(false);
+    router.back();
+  };
+
   const handleStatusChange = async (newStatus: MemberStatus, action: string) => {
     setSaving(true);
+    setError(null);
+    
     try {
-      // Simulate API call for status change
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const updatedMember = await apiService.updateMember(memberId, {
+        status: newStatus
+      });
       
-      setUser(prev => ({ ...prev, status: newStatus }));
+      setMember(prev => prev ? { ...prev, ...updatedMember } : null);
       setFormData(prev => ({ ...prev, status: newStatus }));
       
-      console.log(`User ${action} successfully`);
+      console.log(`Member ${action} successfully`);
       
-    } catch (error) {
-      console.error(`Error ${action} member:`, error);
+    } catch (err) {
+      console.error(`Error ${action} member:`, err);
+      setError(`Failed to ${action} member. Please try again.`);
     } finally {
       setSaving(false);
     }
@@ -205,8 +242,39 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
     );
   }
 
+  if (error && !member) {
+    return (
+      <div className="text-center py-12" role="main" aria-label="Error loading member">
+        <AlertTriangle className="h-12 w-12 text-destructive opacity-50 mx-auto mb-3" aria-hidden="true" />
+        <p className="text-destructive mb-4">{error}</p>
+        <Button onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  if (!member) {
+    return (
+      <div className="text-center py-12" role="main" aria-label="Member not found">
+        <User className="h-12 w-12 text-muted-foreground opacity-50 mx-auto mb-3" aria-hidden="true" />
+        <p className="text-muted-foreground">Member not found</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-4xl" role="main" aria-labelledby="edit-form-title">
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4" role="alert">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="h-4 w-4 text-destructive" aria-hidden="true" />
+            <span className="text-destructive text-sm">{error}</span>
+          </div>
+        </div>
+      )}
+
       {/* Header with Status and Actions */}
       <Card>
         <CardHeader>
@@ -248,6 +316,7 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
                         variant="outline" 
                         size="sm" 
                         className="text-warning"
+                        disabled={saving}
                         aria-label={`Suspend account for ${member.name}`}
                       >
                         <Shield className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -283,6 +352,7 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
                         variant="outline" 
                         size="sm" 
                         className="text-destructive"
+                        disabled={saving}
                         aria-label={`Cancel account for ${member.name}`}
                       >
                         <UserX className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -321,6 +391,7 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
                       variant="outline" 
                       size="sm" 
                       className="text-success"
+                      disabled={saving}
                       aria-label={`Reactivate account for ${member.name}`}
                     >
                       <ShieldOff className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -387,6 +458,7 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
                 aria-describedby={errors.name ? "name-error" : "name-help"}
                 aria-invalid={!!errors.name}
                 required
+                disabled={saving}
               />
               <div id="name-help" className="sr-only">
                 Enter the member's full name as it should appear on their account
@@ -422,6 +494,7 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
                 aria-describedby={errors.email ? "email-error" : "email-help"}
                 aria-invalid={!!errors.email}
                 required
+                disabled={saving}
               />
               <div id="email-help" className="sr-only">
                 Enter a valid email address for account communication
@@ -447,18 +520,17 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
                 <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <span>Phone Number</span>
               </Label>
-              <Input
+              <PhoneInput
                 id="phone"
-                type="tel"
                 value={formData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                placeholder="(555) 123-4567"
+                onChange={(value) => handleInputChange("phone", value)}
                 className={errors.phone ? "border-destructive" : ""}
                 aria-describedby={errors.phone ? "phone-error" : "phone-help"}
                 aria-invalid={!!errors.phone}
+                disabled={saving}
               />
               <div id="phone-help" className="sr-only">
-                Optional phone number in format (555) 123-4567
+                Enter phone number - formatting will be applied automatically
               </div>
               {errors.phone && (
                 <p 
@@ -480,6 +552,7 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
               <Select 
                 value={formData.status} 
                 onValueChange={(value: MemberStatus) => handleInputChange("status", value)}
+                disabled={saving}
               >
                 <SelectTrigger id="status" aria-describedby="status-help">
                   <SelectValue />
@@ -513,6 +586,7 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
                       size="sm" 
                       onClick={handleCancel}
                       type="button"
+                      disabled={saving}
                       aria-label="Cancel changes and return to previous page"
                     >
                       <X className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -546,6 +620,7 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
           variant="outline" 
           onClick={handleCancel}
           type="button"
+          disabled={saving}
           aria-label="Cancel editing and return to member details"
         >
           <X className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -578,6 +653,26 @@ export function MemberEditForm({ memberId }: MemberEditFormProps) {
           </Button>
         </div>
       </div>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard Changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes that will be lost if you leave this page.
+              Are you sure you want to continue without saving?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay on Page</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={confirmCancel}>
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
